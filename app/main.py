@@ -6,6 +6,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from app.answers import NORMALISATION, score_answers
 from app.rouge_metrics import ROUGE_METRICS, score_rouge
 from app.sacrebleu_metrics import SACREBLEU_METRICS, score_sacrebleu
 
@@ -76,3 +77,43 @@ def score_text(request: TextScoreRequest) -> TextScoreResponse:
         scores[name] = MetricScore(score=value, provenance=provenance)
 
     return TextScoreResponse(metrics=scores)
+
+
+class AnswersItem(BaseModel):
+    prediction: str
+    answers: list[str]
+
+
+class AnswersRequest(BaseModel):
+    items: list[AnswersItem]
+
+
+class AnswersResponse(BaseModel):
+    exact_match: float
+    token_f1: float
+    count: int
+    normalisation: str
+
+
+@app.post("/api/v1/answers")
+def score_answers_route(payload: AnswersRequest) -> AnswersResponse:
+    """Scores a set of predictions against their accepted answers.
+
+    Each item pairs a prediction with the answers accepted for it.
+    Answers with the set's exact match and token F1, on the 0-100
+    scale SQuAD reports, the number of predictions scored, and the
+    normalisation that was applied.
+    """
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="items must not be empty")
+
+    scores = score_answers(
+        [(item.prediction, item.answers) for item in payload.items]
+    )
+
+    return AnswersResponse(
+        exact_match=scores["exact_match"],
+        token_f1=scores["token_f1"],
+        count=scores["count"],
+        normalisation=NORMALISATION,
+    )
