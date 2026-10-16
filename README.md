@@ -5,14 +5,24 @@ systems against references. Every measurement on Thinkube goes through it, so
 every measurement uses one implementation, and two numbers from two projects
 can be compared.
 
-Today the service is a skeleton: it answers `GET /health` with
-`{"status": "ok"}`. The metrics below are built on it next.
+The service answers `GET /health` with `{"status": "ok"}`, and scores
+written output through `POST /api/v1/text`. The metrics below that are not
+built yet are built on it next.
+
+`POST /api/v1/text` takes `hypotheses` (the outputs to score), `references`
+(one list of accepted references per hypothesis, of length one when there
+is a single reference) and `metrics` (the metric keys wanted). It answers,
+for each metric asked, that metric's corpus score and what produced it —
+the sacreBLEU signature for a sacreBLEU metric, the ROUGE implementation
+and version for a ROUGE metric. The metric keys a caller may ask for are
+exactly: `bleu`, `chrf`, `chrf++`, `ter`, `rouge1`, `rouge2`, `rougeL`.
 
 ## Version 1
 
 - **Translation and generation text:** BLEU, chrF, chrF++ and TER through
   sacreBLEU 2.6.0, each returned with its sacreBLEU signature; ROUGE-1,
-  ROUGE-2 and ROUGE-L.
+  ROUGE-2 and ROUGE-L, each returned with the ROUGE implementation and
+  version that produced it.
 - **Answers and extraction:** exact match and token F1.
 - **Classification:** accuracy; precision, recall and F1, macro and micro;
   the confusion matrix.

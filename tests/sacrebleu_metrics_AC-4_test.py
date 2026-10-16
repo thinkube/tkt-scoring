@@ -1,0 +1,19 @@
+# Copyright Alejandro Martínez Corriá and the Thinkube contributors
+# SPDX-License-Identifier: MIT
+
+# WHY (INVARIANT): ter answers a corpus score plus a sacreBLEU signature
+# stating sacreBLEU version 2.6.0, so every ter number is traceable to the
+# sacreBLEU release that produced it.
+
+from app.sacrebleu_metrics import score_sacrebleu
+
+
+def test_ter_returns_score_and_signature_with_sacrebleu_version():
+    hypotheses = ["the cat sat on the mat", "a quick brown fox"]
+    references = [["the cat sat on the mat"], ["a quick brown fox"]]
+
+    score, signature = score_sacrebleu("ter", hypotheses, references)
+
+    assert isinstance(score, float)
+    assert isinstance(signature, str)
+    assert "2.6.0" in signature
