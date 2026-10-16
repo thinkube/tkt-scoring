@@ -57,7 +57,7 @@ or `python3 scripts/deploy.py scoring`, which needs `THINKUBE_CONTROL_URL` and
 
 ## License
 
-Apache License 2.0 - See [LICENSE](LICENSE)
+MIT - See [LICENSE](LICENSE)
 
 ## Copyright
 
