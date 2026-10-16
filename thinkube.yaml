@@ -34,6 +34,7 @@ spec:
   # Control (scripts/deploy.py), then look at it here.
   deploy:
     run: python3 scripts/deploy.py scoring
+    at: https://scoring.thinkube.com
     # Checks of what only the running service can answer: they call it at
     # TANDEM_LIVE_URL and never run in the unit suite (run_tests.sh runs
     # tests/ only).
