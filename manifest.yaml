@@ -1,0 +1,14 @@
+# Copyright Alejandro Martínez Corriá and the Thinkube contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: thinkube.io/v1
+kind: TemplateManifest
+metadata:
+  name: tkt-scoring
+  title: Scoring — one implementation of every measurement
+  description: A CPU service that scores AI system outputs against references (text, answer, classification and retrieval metrics, and paired comparison of two systems), so every measurement on Thinkube uses one implementation.
+  version: 1.0.0
+  author: Alejandro Martínez Corriá
+  tags: ["evaluation", "metrics", "scoring", "bleu", "chrf", "sacrebleu"]
+
+parameters: []

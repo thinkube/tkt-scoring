@@ -1,0 +1,42 @@
+# Copyright Alejandro Martínez Corriá and the Thinkube contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: thinkube.io/v1
+kind: ThinkubeDeployment
+metadata:
+  # The component's version; the generated component starts at it.
+  version: "0.1.0"
+
+spec:
+  deployment:
+    type: component
+    name: scoring
+    replicas: 1
+
+  # One CPU container: the metrics of version 1 need no GPU.
+  containers:
+    - name: scoring
+      build: .
+      port: 8080
+      size: small
+      health: /health
+      test:
+        enabled: true
+        image: "python-base:3.12-slim"
+        command: "./run_tests.sh"
+        one: "./run_tests.sh <file>"
+
+  routes:
+    - path: /
+      to: scoring
+
+  # How Tandem makes a delivery live: redeploy the component through Thinkube
+  # Control (scripts/deploy.py), then look at it here.
+  deploy:
+    run: python3 scripts/deploy.py scoring
+    # Checks of what only the running service can answer: they call it at
+    # TANDEM_LIVE_URL and never run in the unit suite (run_tests.sh runs
+    # tests/ only).
+    live:
+      home: live
+      one: "python3 -m pytest -q -p no:cacheprovider <file>"

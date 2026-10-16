@@ -1,0 +1,11 @@
+{
+  "provision": "pip install --break-system-packages -q -r requirements.txt pytest==8.4.2 httpx==0.28.1",
+  "prepare": "",
+  "runOne": "./run_tests.sh <file>",
+  "build": "python3 -m compileall -q app",
+  "suite": "./run_tests.sh",
+  "downstream": "template",
+  "builds": [
+    "app/__pycache__"
+  ]
+}
