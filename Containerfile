@@ -1,5 +1,5 @@
 # Copyright Alejandro Martínez Corriá and the Thinkube contributors
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 
 # The scoring service. Its tests run before this build, in the platform
 # pipeline's test step (thinkube.yaml spec.containers[].test); a failing test

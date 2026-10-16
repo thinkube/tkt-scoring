@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright Alejandro Martínez Corriá and the Thinkube contributors
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 
 """Redeploy this component through Thinkube Control and wait for the result.
 

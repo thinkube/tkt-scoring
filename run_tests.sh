@@ -1,6 +1,6 @@
 #!/bin/sh
 # Copyright Alejandro Martínez Corriá and the Thinkube contributors
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 
 # run_tests.sh - Run the tests.
 #
