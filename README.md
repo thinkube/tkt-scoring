@@ -9,8 +9,8 @@ The service answers `GET /health` with `{"status": "ok"}`, scores
 written output through `POST /api/v1/text`, and scores predicted answers
 against accepted answers through `POST /api/v1/answers`, and scores a
 classifier through `POST /api/v1/classification`, and scores retrieval
-through `POST /api/v1/retrieval`. The metrics below that are not built yet
-are built on it next.
+through `POST /api/v1/retrieval`, and compares two systems through
+`POST /api/v1/compare`.
 
 `POST /api/v1/text` takes `hypotheses` (the outputs to score), `references`
 (one list of accepted references per hypothesis, of length one when there
@@ -48,6 +48,20 @@ positive whole number, and a ranked list that repeats an id, naming the
 offender, and never invents a number. See
 [the how-to](docs/i-can-score-retrieval-against-its-relevant-results.md).
 
+`POST /api/v1/compare` takes `hypotheses_a` and `hypotheses_b` (the two
+systems' outputs on the same items), `references` (one list per item), one
+`metric` key, `samples` (the number of bootstrap samples) and a `seed`. It
+answers `system_a` and `system_b`, each a `score` with its 95% interval
+(`lower`, `upper`), the `difference` (first minus second) with its interval,
+`share_a_beats_b` (the share of samples in which the first system beats the
+second; for `ter` beating means a lower score), `significant` (true only
+when the difference interval excludes zero), the `provenance` of the metric
+and the `method`. The metric keys accepted are exactly: `bleu`, `chrf`,
+`chrf++`, `ter`, `rouge1`, `rouge2`, `rougeL`, `exact_match`, `token_f1`. It
+refuses bad requests with 400 and a message saying what to send. A
+difference whose interval includes zero is not a gain. See
+[the how-to](docs/i-can-compare-two-systems-and-see-whether-the-difference-is-real.md).
+
 ## Version 1
 
 - **Translation and generation text:** BLEU, chrF, chrF++ and TER through
@@ -60,9 +74,9 @@ offender, and never invents a number. See
   the confusion matrix, through `POST /api/v1/classification`.
 - **Retrieval:** recall@k, precision@k, MRR and nDCG@k, through
   `POST /api/v1/retrieval`.
-- **Comparing two systems:** paired bootstrap for any of the metrics above,
-  with 95% intervals and significance. A difference inside the interval is
-  not a gain.
+- **Comparing two systems:** paired bootstrap for any text or answers
+  metric, through `POST /api/v1/compare`, with 95% intervals and
+  significance. A difference whose interval includes zero is not a gain.
 
 ## Later milestones
 
