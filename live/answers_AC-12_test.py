@@ -19,7 +19,7 @@ def test_answers_scores_a_posted_set():
         ]
     }
 
-    res = httpx.post(f"{base_url}/api/v1/answers", json=payload, timeout=30)
+    res = httpx.post(f"{base_url}/api/v1/answers", json=payload, headers={"Authorization": f"Bearer {os.environ['THINKUBE_API_TOKEN']}"}, timeout=30)
 
     assert res.status_code == 200
     body = res.json()

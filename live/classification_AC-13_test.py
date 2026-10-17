@@ -15,13 +15,18 @@ def test_classification_answer_is_complete_and_leaves_no_trace_in_later_answers(
     marker = "zq" + os.urandom(4).hex()
     payload = {"predicted": [marker, "x"], "true_labels": [marker, marker]}
 
-    first = httpx.post(f"{base_url}/api/v1/classification", json=payload, timeout=30)
+    headers = {"Authorization": f"Bearer {os.environ['THINKUBE_API_TOKEN']}"}
+
+    first = httpx.post(
+        f"{base_url}/api/v1/classification", json=payload, headers=headers, timeout=30
+    )
     assert first.status_code == 200
     assert first.json()["accuracy"] == 0.5
 
     other = httpx.post(
         f"{base_url}/api/v1/classification",
         json={"predicted": ["x"], "true_labels": ["x"]},
+        headers=headers,
         timeout=30,
     )
     assert other.status_code == 200

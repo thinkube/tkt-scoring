@@ -12,6 +12,13 @@ classifier through `POST /api/v1/classification`, and scores retrieval
 through `POST /api/v1/retrieval`, and compares two systems through
 `POST /api/v1/compare`.
 
+Every route except `/health` and the API documentation (`/docs`, `/redoc`,
+`/openapi.json`) requires an `Authorization: Bearer <token>` header carrying
+a token Thinkube accepts: a Keycloak token of the platform's realm or a
+Thinkube API token. The service checks each token with Thinkube Control on
+every request and keeps nothing. It answers 401 without a valid token, and
+503 when Control cannot be asked.
+
 `POST /api/v1/text` takes `hypotheses` (the outputs to score), `references`
 (one list of accepted references per hypothesis, of length one when there
 is a single reference) and `metrics` (the metric keys wanted). It answers,
@@ -26,7 +33,9 @@ It answers the set's exact match and token F1 — on the 0-100 scale SQuAD
 reports — the number of predictions scored, and the normalisation that was
 applied before comparing: lowercasing, removing punctuation, removing the
 articles a, an and the, and collapsing whitespace, exactly as SQuAD
-computes it.
+computes it. Every refusal on these routes is a 422 with a message naming the
+problem: for text, an empty `metrics` list, an empty reference group or an
+unknown metric; for answers, no items or an item with no accepted answers.
 
 `POST /api/v1/classification` takes `predicted` (the labels a classifier
 gave) and `true_labels` (the labels it should have given, in the same
@@ -50,7 +59,8 @@ offender, and never invents a number. See
 
 `POST /api/v1/compare` takes `hypotheses_a` and `hypotheses_b` (the two
 systems' outputs on the same items), `references` (one list per item), one
-`metric` key, `samples` (the number of bootstrap samples) and a `seed`. It
+`metric` key, `samples` (the number of bootstrap samples) and a required
+`seed` (a whole number; a request without one is refused). It
 answers `system_a` and `system_b`, each a `score` with its 95% interval
 (`lower`, `upper`), the `difference` (first minus second) with its interval,
 `share_a_beats_b` (the share of samples in which the first system beats the
@@ -58,7 +68,7 @@ second; for `ter` beating means a lower score), `significant` (true only
 when the difference interval excludes zero), the `provenance` of the metric
 and the `method`. The metric keys accepted are exactly: `bleu`, `chrf`,
 `chrf++`, `ter`, `rouge1`, `rouge2`, `rougeL`, `exact_match`, `token_f1`. It
-refuses bad requests with 400 and a message saying what to send. A
+refuses bad requests with 422 and a message saying what to send. A
 difference whose interval includes zero is not a gain. See
 [the how-to](docs/i-can-compare-two-systems-and-see-whether-the-difference-is-real.md).
 
@@ -106,6 +116,10 @@ The component is listed as `scoring` in
 Components page (or the `install_optional_component` MCP tool), which deploys
 this template into the namespace `scoring`. The service is then at
 `https://scoring.<domain>`.
+
+The running service needs the setting `THINKUBE_CONTROL_URL`, the address of Thinkube Control
+(for example `https://control.<domain>`), and will not start without it. It is
+declared in `thinkube.yaml`, so a deployment through Control fills it in.
 
 A change is deployed by pushing it and redeploying the installed component
 from this template: the `redeploy_template` MCP tool with the name `scoring`,

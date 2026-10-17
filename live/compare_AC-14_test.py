@@ -20,7 +20,8 @@ def test_compare_two_posted_systems():
     }
 
     res = httpx.post(
-        f"{os.environ['TANDEM_LIVE_URL']}/api/v1/compare", json=payload, timeout=60
+        f"{os.environ['TANDEM_LIVE_URL']}/api/v1/compare", json=payload,
+        headers={"Authorization": f"Bearer {os.environ['THINKUBE_API_TOKEN']}"}, timeout=60
     )
 
     assert res.status_code == 200

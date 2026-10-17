@@ -26,6 +26,11 @@ spec:
         command: "./run_tests.sh"
         one: "./run_tests.sh <file>"
 
+  env:
+    - name: THINKUBE_CONTROL_URL
+      description: The address of Thinkube Control, which the service needs to start
+      default: "https://control.{{ domain_name }}"
+
   routes:
     - path: /
       to: scoring

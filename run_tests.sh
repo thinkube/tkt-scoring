@@ -12,7 +12,8 @@ cd "$(dirname "$0")"
 
 # The requirements are installed once per tree and again only when
 # requirements.txt changes; .provisioned holds the hash they were installed for.
-# pytest and httpx (which FastAPI's TestClient uses) are needed by the tests only.
+# pytest is needed by the tests only; httpx is also in requirements.txt (the
+# token check uses it) and is pinned to the same version here.
 STAMP=.provisioned
 WANT=$(sha256sum requirements.txt | cut -d' ' -f1)
 if [ "$(cat "$STAMP" 2>/dev/null)" != "$WANT" ]; then

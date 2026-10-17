@@ -2,14 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import math
-import sys
-from pathlib import Path
+import os
 
-from fastapi.testclient import TestClient
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from app.main import app  # noqa: E402
+import httpx
 
 
 # WHY (INVARIANT): posting ranked ids, relevant ids (graded or not) and cut-offs
@@ -30,7 +25,12 @@ def test_retrieval_scores_posted_queries():
         "k": [1, 2, 3],
     }
 
-    res = TestClient(app).post("/api/v1/retrieval", json=payload)
+    res = httpx.post(
+        f"{os.environ['TANDEM_LIVE_URL']}/api/v1/retrieval",
+        json=payload,
+        headers={"Authorization": f"Bearer {os.environ['THINKUBE_API_TOKEN']}"},
+        timeout=30,
+    )
 
     assert res.status_code == 200
     body = res.json()

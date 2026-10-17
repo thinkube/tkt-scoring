@@ -3,21 +3,37 @@
 
 """The scoring service: scores AI system outputs against references."""
 
-from typing import Any
+import os
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
+from app.auth import require_thinkube_token
 from app.answers import NORMALISATION, score_answers
 from app.classification import score_classification
 from app.compare import compare_systems
 from app.rouge_metrics import ROUGE_METRICS, score_rouge
 from app.retrieval import DEFINITIONS, score_retrieval
 from app.sacrebleu_metrics import SACREBLEU_METRICS, score_sacrebleu
+from app.settings import control_url
 
 TEXT_METRICS = SACREBLEU_METRICS | ROUGE_METRICS
 
-app = FastAPI(title="Thinkube scoring")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Refuses to start without THINKUBE_CONTROL_URL."""
+    app.state.control_url = control_url(os.environ)
+    yield
+
+
+app = FastAPI(title="Thinkube scoring", lifespan=lifespan)
+
+# Every route but /health carries this; the documentation stays open.
+AUTH = [Depends(require_thinkube_token)]
 
 
 @app.get("/health")
@@ -41,7 +57,7 @@ class TextScoreResponse(BaseModel):
     metrics: dict[str, MetricScore]
 
 
-@app.post("/api/v1/text")
+@app.post("/api/v1/text", dependencies=AUTH)
 def score_text(request: TextScoreRequest) -> TextScoreResponse:
     """Scores a corpus of hypotheses against their references.
 
@@ -50,11 +66,17 @@ def score_text(request: TextScoreRequest) -> TextScoreResponse:
     per metric asked, each paired with what produced it.
     """
     if not request.hypotheses:
-        raise HTTPException(status_code=400, detail="hypotheses must not be empty")
+        raise HTTPException(status_code=422, detail="hypotheses must not be empty")
+
+    if not request.metrics:
+        raise HTTPException(
+            status_code=422,
+            detail="metrics must not be empty: send at least one metric",
+        )
 
     if len(request.references) != len(request.hypotheses):
         raise HTTPException(
-            status_code=400,
+            status_code=422,
             detail=(
                 "the number of reference groups "
                 f"({len(request.references)}) must match the number of "
@@ -62,10 +84,20 @@ def score_text(request: TextScoreRequest) -> TextScoreResponse:
             ),
         )
 
+    for position, group in enumerate(request.references):
+        if not group:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"reference group at position {position} (counting from "
+                    "0) is empty: send at least one reference per item"
+                ),
+            )
+
     unknown = [name for name in request.metrics if name not in TEXT_METRICS]
     if unknown:
         raise HTTPException(
-            status_code=400,
+            status_code=422,
             detail=f"unknown metric(s) requested: {', '.join(unknown)}",
         )
 
@@ -100,7 +132,7 @@ class AnswersResponse(BaseModel):
     normalisation: str
 
 
-@app.post("/api/v1/answers")
+@app.post("/api/v1/answers", dependencies=AUTH)
 def score_answers_route(payload: AnswersRequest) -> AnswersResponse:
     """Scores a set of predictions against their accepted answers.
 
@@ -110,7 +142,17 @@ def score_answers_route(payload: AnswersRequest) -> AnswersResponse:
     normalisation that was applied.
     """
     if not payload.items:
-        raise HTTPException(status_code=400, detail="items must not be empty")
+        raise HTTPException(status_code=422, detail="items must not be empty")
+
+    for position, item in enumerate(payload.items):
+        if not item.answers:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"item at position {position} (counting from 0) has no "
+                    "accepted answers: send at least one answer per item"
+                ),
+            )
 
     scores = score_answers(
         [(item.prediction, item.answers) for item in payload.items]
@@ -147,7 +189,7 @@ class ClassificationResponse(BaseModel):
     statement: str
 
 
-@app.post("/api/v1/classification")
+@app.post("/api/v1/classification", dependencies=AUTH)
 def score_classification_route(
     payload: ClassificationRequest,
 ) -> ClassificationResponse:
@@ -159,7 +201,7 @@ def score_classification_route(
     """
     if not payload.predicted or not payload.true_labels:
         raise HTTPException(
-            status_code=400,
+            status_code=422,
             detail=(
                 "predicted and true_labels are both required (true labels "
                 "are sent as 'true_labels'); each must be a non-empty list "
@@ -170,7 +212,7 @@ def score_classification_route(
     try:
         scores = score_classification(payload.predicted, payload.true_labels)
     except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error))
+        raise HTTPException(status_code=422, detail=str(error))
 
     return ClassificationResponse(**scores)
 
@@ -180,9 +222,10 @@ class CompareRequest(BaseModel):
     hypotheses_b: list[str] = []
     references: list[list[str]] = []
     metric: str
-    # Any, so a bad sample count is refused with a 400 that says what to send.
+    # Any, so a bad sample count or seed is refused with a 422 that says what
+    # to send. No default: a request without a seed is refused.
     samples: Any
-    seed: int = 0
+    seed: Any
 
 
 class IntervalScore(BaseModel):
@@ -204,7 +247,7 @@ class CompareResponse(BaseModel):
     method: str
 
 
-@app.post("/api/v1/compare")
+@app.post("/api/v1/compare", dependencies=AUTH)
 def compare_route(payload: CompareRequest) -> CompareResponse:
     """Compares two systems on one metric by paired bootstrap.
 
@@ -223,7 +266,7 @@ def compare_route(payload: CompareRequest) -> CompareResponse:
             payload.seed,
         )
     except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error))
+        raise HTTPException(status_code=422, detail=str(error))
 
     return CompareResponse(**result)
 
@@ -252,7 +295,7 @@ class RetrievalResponse(BaseModel):
     definitions: str
 
 
-@app.post("/api/v1/retrieval")
+@app.post("/api/v1/retrieval", dependencies=AUTH)
 def score_retrieval_route(payload: RetrievalRequest) -> RetrievalResponse:
     """Scores ranked ids against relevant ids, per query, averaged.
 
@@ -262,12 +305,12 @@ def score_retrieval_route(payload: RetrievalRequest) -> RetrievalResponse:
     """
     if not payload.queries:
         raise HTTPException(
-            status_code=400,
+            status_code=422,
             detail="queries must not be empty: send at least one query",
         )
     if not payload.k:
         raise HTTPException(
-            status_code=400,
+            status_code=422,
             detail="k must not be empty: send at least one cut-off",
         )
 
@@ -280,6 +323,6 @@ def score_retrieval_route(payload: RetrievalRequest) -> RetrievalResponse:
             payload.k,
         )
     except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error))
+        raise HTTPException(status_code=422, detail=str(error))
 
     return RetrievalResponse(**scores, definitions=DEFINITIONS)

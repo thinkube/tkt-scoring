@@ -25,14 +25,20 @@ def test_retrieval_leaves_no_client_visible_trace_of_posted_ids():
         "k": [2],
     }
 
-    res = httpx.post(f"{base_url}/api/v1/retrieval", json=payload, timeout=30)
+    headers = {"Authorization": f"Bearer {os.environ['THINKUBE_API_TOKEN']}"}
+
+    res = httpx.post(
+        f"{base_url}/api/v1/retrieval", json=payload, headers=headers, timeout=30
+    )
     assert res.status_code == 200
     assert ranked not in res.text and relevant not in res.text
 
     again = httpx.post(
         f"{base_url}/api/v1/retrieval",
         json={"queries": [{"retrieved": ["z"], "relevant": [{"id": "z"}]}], "k": [1]},
+        headers=headers,
         timeout=30,
     )
     assert again.status_code == 200
     assert ranked not in again.text and relevant not in again.text
+

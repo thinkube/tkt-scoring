@@ -18,13 +18,17 @@ def _url():
     return f"{os.environ['TANDEM_LIVE_URL']}/api/v1/classification"
 
 
+def _headers():
+    return {"Authorization": f"Bearer {os.environ['THINKUBE_API_TOKEN']}"}
+
+
 def test_classification_scores_a_posted_set():
     payload = {
         "predicted": ["a", "a", "b", "c"],
         "true_labels": ["a", "b", "b", "b"],
     }
 
-    res = httpx.post(_url(), json=payload, timeout=30)
+    res = httpx.post(_url(), json=payload, headers=_headers(), timeout=30)
 
     assert res.status_code == 200
     body = res.json()
@@ -59,7 +63,7 @@ def test_classification_scores_a_posted_set():
 def test_classification_refuses_mismatched_lengths_and_names_both_counts():
     payload = {"predicted": ["a"] * 5, "true_labels": ["a", "b"]}
 
-    res = httpx.post(_url(), json=payload, timeout=30)
+    res = httpx.post(_url(), json=payload, headers=_headers(), timeout=30)
 
     assert 400 <= res.status_code < 500
     body = res.json()
@@ -77,7 +81,7 @@ def test_classification_refuses_empty_or_missing_fields_and_names_them():
         {"true_labels": ["a"]},
         {},
     ):
-        res = httpx.post(_url(), json=payload, timeout=30)
+        res = httpx.post(_url(), json=payload, headers=_headers(), timeout=30)
 
         assert 400 <= res.status_code < 500
         body = res.json()
@@ -95,6 +99,7 @@ def test_classification_keeps_other_routes_answering():
     answers = httpx.post(
         f"{base_url}/api/v1/answers",
         json={"items": [{"prediction": "Big Ben", "answers": ["big ben"]}]},
+        headers=_headers(),
         timeout=30,
     )
     assert answers.status_code == 200
