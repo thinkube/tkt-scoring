@@ -50,8 +50,28 @@ class FakeControl:
         return httpx.Client(transport=httpx.MockTransport(self._handle))
 
 
+def _app_modules() -> dict:
+    return {n: m for n, m in sys.modules.items() if n == "app" or n.startswith("app.")}
+
+
 @pytest.fixture(autouse=True)
-def fake_control(request, monkeypatch):
+def keep_app_modules():
+    """Puts back the app modules a test removed from sys.modules.
+
+    Some tests import the service fresh by deleting its modules. Without this,
+    the next test's `from app.main import app` would get a new app object,
+    while test files that made a TestClient when they were loaded still hold
+    the first one, and the fake Control would be set on the wrong app.
+    """
+    kept = _app_modules()
+    yield
+    for name in _app_modules():
+        del sys.modules[name]
+    sys.modules.update(kept)
+
+
+@pytest.fixture(autouse=True)
+def fake_control(request, monkeypatch, keep_app_modules):
     """Routes the token check to a fake Control and gives requests a token."""
     from starlette.testclient import TestClient
 
