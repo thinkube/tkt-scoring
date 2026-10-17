@@ -26,7 +26,7 @@ def test_text_scores_a_posted_corpus():
         "metrics": ["bleu", "chrf", "rouge1"],
     }
 
-    res = httpx.post(f"{base_url}/api/v1/text", json=payload, timeout=30.0)
+    res = httpx.post(f"{base_url}/api/v1/text", json=payload, headers={"Authorization": f"Bearer {os.environ['THINKUBE_API_TOKEN']}"}, timeout=30.0)
     assert res.status_code == 200
 
     body = res.json()
