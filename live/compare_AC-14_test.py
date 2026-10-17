@@ -11,9 +11,9 @@ import httpx
 
 def test_compare_two_posted_systems():
     payload = {
-        "hypotheses_a": ["the cat sat on the mat", "a dog barked", "birds sing at dawn"],
+        "hypotheses_a": ["the cat sat on the mat", "a dog barked loudly", "birds sing at dawn"],
         "hypotheses_b": ["zzz yyy", "xxx www", "vvv uuu"],
-        "references": [["the cat sat on the mat"], ["a dog barked"], ["birds sing at dawn"]],
+        "references": [["the cat sat on the mat"], ["a dog barked loudly"], ["birds sing at dawn"]],
         "metric": "bleu",
         "samples": 200,
         "seed": 3,
