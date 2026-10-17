@@ -60,8 +60,10 @@ all the references together, the way sacreBLEU does.
 
 If you name a metric that is not one of the seven, or give a different
 number of reference groups than hypotheses, or post no hypotheses at all,
-the service refuses the request and tells you what to fix — it never
-invents a number.
+an empty `metrics` list, or an empty reference group (named by its position,
+counting from 0), the service refuses the request with a 422 and tells you
+what to fix — it never invents a number. On the answers route an item with no
+accepted answers is refused the same way.
 
 ## Who this is for
 

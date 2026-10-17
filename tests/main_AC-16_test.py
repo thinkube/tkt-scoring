@@ -1,0 +1,59 @@
+# Copyright Alejandro Martínez Corriá and the Thinkube contributors
+# SPDX-License-Identifier: MIT
+
+import json
+import os
+import re
+import sys
+
+import httpx
+from fastapi.testclient import TestClient
+
+import app.auth  # noqa: F401  (loaded the way the auth tests load it)
+import app.main  # noqa: F401
+
+QUERY = {"retrieved": ["d1", "d2"], "relevant": [{"id": "d1"}]}
+
+
+def _load():
+    os.environ["THINKUBE_CONTROL_URL"] = "http://control.test"
+    for name in [n for n in sys.modules if n == "app" or n.startswith("app.")]:
+        del sys.modules[name]
+    from app.auth import control_client
+    from app.main import app
+
+    # Stand-in for Control: it accepts every token, so the request reaches the
+    # route body. The client implements get(), the only call the check makes.
+    app.dependency_overrides[control_client] = lambda: httpx.Client(
+        transport=httpx.MockTransport(lambda req: httpx.Response(200, json={}))
+    )
+    return app
+
+
+def _post(**changes):
+    payload = {"queries": [QUERY], "k": [1]}
+    payload.update(changes)
+    app = _load()
+    with TestClient(app) as client:
+        return client.post(
+            "/api/v1/retrieval",
+            json=payload,
+            headers={"Authorization": "Bearer good-token"},
+        )
+
+
+# WHY (INVARIANT): /api/v1/retrieval refuses an empty queries list with 422
+# and a message naming queries.
+def test_empty_queries_is_422_naming_queries():
+    res = _post(queries=[])
+    assert res.status_code == 422
+    assert "queries" in json.dumps(res.json())
+
+
+# WHY (INVARIANT): /api/v1/retrieval refuses an empty k with 422 and a
+# message naming k.
+def test_empty_k_is_422_naming_k():
+    res = _post(k=[])
+    assert res.status_code == 422
+    text = json.dumps(res.json())
+    assert re.search(r"\bk\b", text.replace('"', " ").replace("[", " "))

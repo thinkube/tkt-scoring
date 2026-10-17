@@ -13,7 +13,7 @@ answers 401. The body carries:
 - `references`: one list of references per item (a list of one for a single reference).
 - `metric`: one of `bleu`, `chrf`, `chrf++`, `ter`, `rouge1`, `rouge2`, `rougeL`, `exact_match`, `token_f1`.
 - `samples`: the number of bootstrap samples, a positive whole number.
-- `seed`: a whole number; the same inputs and seed give the same answer.
+- `seed`: required, a whole number; a request without one is refused (422). The same inputs and seed give the same answer.
 
 ## A worked request
 
@@ -58,7 +58,8 @@ difference score looks.
 
 ## Refusals
 
-A bad request gets 400 with a message saying what to send: empty outputs, an
+A bad request gets 422 with a message saying what to send: a missing or
+non-whole-number seed, empty outputs, an
 unknown metric (the accepted keys are listed), systems or references of
 different lengths (both counts are named), an empty reference group, or a
 sample count that is not a positive whole number. Nothing of the request is kept.

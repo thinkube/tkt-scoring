@@ -80,7 +80,7 @@ The service answers exactly these fields and nothing else.
 The service keeps nothing of what you post: no label from your request is
 logged or stored.
 
-If you post lists of different lengths, the service refuses with an error
+If you post lists of different lengths, the service refuses with a 422
 that names both counts. If you post an empty list, or leave out
 `predicted` or `true_labels`, it refuses and says that both are required
 and each must be a non-empty list of the same length. In every refusal no

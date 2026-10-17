@@ -64,7 +64,7 @@ All four numbers are on a 0 to 1 scale; 1 is best.
 
 ## What it refuses
 
-A refusal is a 4xx whose message names what to fix, and no number comes back:
+A refusal is a 422 whose message names what to fix, and no number comes back:
 no `queries`; no `k`; a query with no relevant ids (named by its position,
 counting from 0); a cut-off that is not a positive whole number (named); a
 ranked list that repeats an id (named); a negative grade. It never invents a

@@ -80,6 +80,11 @@ def compare_systems(
 
     Raises ValueError, naming the offender, before any number is produced.
     """
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError(
+            f"seed is required and must be a whole number, got {seed!r}: "
+            "send seed as a whole number"
+        )
     if metric not in ACCEPTED_METRICS:
         raise ValueError(
             f"unknown metric '{metric}': send one of {', '.join(ACCEPTED_METRICS)}"
