@@ -107,6 +107,10 @@ Components page (or the `install_optional_component` MCP tool), which deploys
 this template into the namespace `scoring`. The service is then at
 `https://scoring.<domain>`.
 
+The running service needs the setting `THINKUBE_CONTROL_URL`, the address of Thinkube Control
+(for example `https://control.<domain>`), and will not start without it. It is
+declared in `thinkube.yaml`, so a deployment through Control fills it in.
+
 A change is deployed by pushing it and redeploying the installed component
 from this template: the `redeploy_template` MCP tool with the name `scoring`,
 or `python3 scripts/deploy.py scoring`, which needs `THINKUBE_CONTROL_URL` and

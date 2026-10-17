@@ -3,7 +3,9 @@
 
 """The scoring service: scores AI system outputs against references."""
 
-from typing import Any
+import os
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -14,10 +16,20 @@ from app.compare import compare_systems
 from app.rouge_metrics import ROUGE_METRICS, score_rouge
 from app.retrieval import DEFINITIONS, score_retrieval
 from app.sacrebleu_metrics import SACREBLEU_METRICS, score_sacrebleu
+from app.settings import control_url
 
 TEXT_METRICS = SACREBLEU_METRICS | ROUGE_METRICS
 
-app = FastAPI(title="Thinkube scoring")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Refuses to start without THINKUBE_CONTROL_URL."""
+    app.state.control_url = control_url(os.environ)
+    yield
+
+
+app = FastAPI(title="Thinkube scoring", lifespan=lifespan)
 
 
 @app.get("/health")
