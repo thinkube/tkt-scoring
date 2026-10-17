@@ -3,11 +3,14 @@
 
 """The scoring service: scores AI system outputs against references."""
 
+from typing import Any
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.answers import NORMALISATION, score_answers
 from app.classification import score_classification
+from app.compare import compare_systems
 from app.rouge_metrics import ROUGE_METRICS, score_rouge
 from app.retrieval import DEFINITIONS, score_retrieval
 from app.sacrebleu_metrics import SACREBLEU_METRICS, score_sacrebleu
@@ -170,6 +173,59 @@ def score_classification_route(
         raise HTTPException(status_code=400, detail=str(error))
 
     return ClassificationResponse(**scores)
+
+
+class CompareRequest(BaseModel):
+    hypotheses_a: list[str] = []
+    hypotheses_b: list[str] = []
+    references: list[list[str]] = []
+    metric: str
+    # Any, so a bad sample count is refused with a 400 that says what to send.
+    samples: Any
+    seed: int = 0
+
+
+class IntervalScore(BaseModel):
+    score: float
+    lower: float
+    upper: float
+
+
+class CompareResponse(BaseModel):
+    metric: str
+    samples: int
+    seed: int
+    system_a: IntervalScore
+    system_b: IntervalScore
+    difference: IntervalScore
+    share_a_beats_b: float
+    significant: bool
+    provenance: str
+    method: str
+
+
+@app.post("/api/v1/compare")
+def compare_route(payload: CompareRequest) -> CompareResponse:
+    """Compares two systems on one metric by paired bootstrap.
+
+    Answers each system's score with its 95% interval, the difference
+    (first minus second) with its interval, the share of samples in which
+    the first beats the second, the significance, the provenance of the
+    metric and the method. Nothing of the request is kept.
+    """
+    try:
+        result = compare_systems(
+            payload.metric,
+            payload.hypotheses_a,
+            payload.hypotheses_b,
+            payload.references,
+            payload.samples,
+            payload.seed,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+    return CompareResponse(**result)
 
 
 class RelevantId(BaseModel):
