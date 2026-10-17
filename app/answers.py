@@ -12,24 +12,25 @@ import string
 from collections.abc import Sequence
 
 NORMALISATION = (
-    "lowercases the text, removes punctuation, removes the articles "
-    "a, an and the, and collapses whitespace into single spaces"
+    "lowercases the text, deletes punctuation without leaving a space, "
+    "removes the articles a, an and the, and collapses whitespace into "
+    "single spaces"
 )
 
 _ARTICLES_RE = re.compile(r"\b(a|an|the)\b")
 _WHITESPACE_RE = re.compile(r"\s+")
-_PUNCTUATION_TABLE = str.maketrans(string.punctuation, " " * len(string.punctuation))
+_PUNCTUATION_TABLE = str.maketrans("", "", string.punctuation)
 
 
 def normalise_answer(text: str) -> str:
     """Normalises an answer the way SQuAD scoring compares answers.
 
-    Lowercases the text, removes punctuation, removes the articles a,
-    an and the, and collapses runs of whitespace into single spaces.
+    Lowercases the text, deletes punctuation without leaving a space,
+    removes the articles a, an and the, and collapses runs of whitespace into single spaces.
     """
     lowered = text.lower()
-    # Punctuation becomes a space, not a deletion, so a joining mark
-    # such as a hyphen still separates the words it sits between.
+    # Punctuation is deleted outright, as in SQuAD's script, so a
+    # hyphen joins the words it sits between ("Eiffel-Tower" -> "eiffeltower").
     no_punctuation = lowered.translate(_PUNCTUATION_TABLE)
     no_articles = _ARTICLES_RE.sub(" ", no_punctuation)
     return _WHITESPACE_RE.sub(" ", no_articles).strip()
