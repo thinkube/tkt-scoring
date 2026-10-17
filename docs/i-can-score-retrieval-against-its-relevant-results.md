@@ -6,6 +6,10 @@ recall@k, precision@k, nDCG@k and MRR, averaged over your queries.
 
 ## Request
 
+Send your Thinkube token with it, as `Authorization: Bearer <token>` (a
+Keycloak token of the platform's realm or a Thinkube API token). Without
+one the service answers 401.
+
 ```json
 {
   "queries": [

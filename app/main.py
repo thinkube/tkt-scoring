@@ -7,9 +7,10 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
+from app.auth import require_thinkube_token
 from app.answers import NORMALISATION, score_answers
 from app.classification import score_classification
 from app.compare import compare_systems
@@ -30,6 +31,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Thinkube scoring", lifespan=lifespan)
+
+# Every route but /health carries this; the documentation stays open.
+AUTH = [Depends(require_thinkube_token)]
 
 
 @app.get("/health")
@@ -53,7 +57,7 @@ class TextScoreResponse(BaseModel):
     metrics: dict[str, MetricScore]
 
 
-@app.post("/api/v1/text")
+@app.post("/api/v1/text", dependencies=AUTH)
 def score_text(request: TextScoreRequest) -> TextScoreResponse:
     """Scores a corpus of hypotheses against their references.
 
@@ -112,7 +116,7 @@ class AnswersResponse(BaseModel):
     normalisation: str
 
 
-@app.post("/api/v1/answers")
+@app.post("/api/v1/answers", dependencies=AUTH)
 def score_answers_route(payload: AnswersRequest) -> AnswersResponse:
     """Scores a set of predictions against their accepted answers.
 
@@ -159,7 +163,7 @@ class ClassificationResponse(BaseModel):
     statement: str
 
 
-@app.post("/api/v1/classification")
+@app.post("/api/v1/classification", dependencies=AUTH)
 def score_classification_route(
     payload: ClassificationRequest,
 ) -> ClassificationResponse:
@@ -216,7 +220,7 @@ class CompareResponse(BaseModel):
     method: str
 
 
-@app.post("/api/v1/compare")
+@app.post("/api/v1/compare", dependencies=AUTH)
 def compare_route(payload: CompareRequest) -> CompareResponse:
     """Compares two systems on one metric by paired bootstrap.
 
@@ -264,7 +268,7 @@ class RetrievalResponse(BaseModel):
     definitions: str
 
 
-@app.post("/api/v1/retrieval")
+@app.post("/api/v1/retrieval", dependencies=AUTH)
 def score_retrieval_route(payload: RetrievalRequest) -> RetrievalResponse:
     """Scores ranked ids against relevant ids, per query, averaged.
 

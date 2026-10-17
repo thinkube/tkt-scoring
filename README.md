@@ -12,6 +12,13 @@ classifier through `POST /api/v1/classification`, and scores retrieval
 through `POST /api/v1/retrieval`, and compares two systems through
 `POST /api/v1/compare`.
 
+Every route except `/health` and the API documentation (`/docs`, `/redoc`,
+`/openapi.json`) requires an `Authorization: Bearer <token>` header carrying
+a token Thinkube accepts: a Keycloak token of the platform's realm or a
+Thinkube API token. The service checks each token with Thinkube Control on
+every request and keeps nothing. It answers 401 without a valid token, and
+503 when Control cannot be asked.
+
 `POST /api/v1/text` takes `hypotheses` (the outputs to score), `references`
 (one list of accepted references per hypothesis, of length one when there
 is a single reference) and `metrics` (the metric keys wanted). It answers,

@@ -13,6 +13,10 @@ computed the same way for every project.
 
 ## How you use it
 
+Send your Thinkube token with the request, as `Authorization: Bearer <token>`
+(a Keycloak token of the platform's realm or a Thinkube API token). Without
+one the service answers 401.
+
 Send a request like this:
 
 ```json

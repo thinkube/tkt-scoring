@@ -5,6 +5,10 @@ and tells you whether the gap between them is more than resampling noise.
 
 ## What to send
 
+Send your Thinkube token as `Authorization: Bearer <token>` (a Keycloak token
+of the platform's realm or a Thinkube API token); without one the service
+answers 401. The body carries:
+
 - `hypotheses_a`, `hypotheses_b`: the two systems' outputs, same items, same order.
 - `references`: one list of references per item (a list of one for a single reference).
 - `metric`: one of `bleu`, `chrf`, `chrf++`, `ter`, `rouge1`, `rouge2`, `rougeL`, `exact_match`, `token_f1`.
