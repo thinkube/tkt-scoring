@@ -81,9 +81,10 @@ Answer (200):
 with its accepted answers (`{"prediction": "...", "answers": ["...", ...]}`).
 It answers the set's exact match and token F1 — on the 0-100 scale SQuAD
 reports — the number of predictions scored, and the normalisation that was
-applied before comparing: lowercasing, removing punctuation, removing the
-articles a, an and the, and collapsing whitespace, exactly as SQuAD
-computes it. Every refusal on these routes is a 422 with a message naming the
+applied before comparing: lowercasing, deleting punctuation without leaving a
+space (not replacing it with one, so "Eiffel-Tower" becomes "eiffeltower"),
+removing the articles a, an and the, and collapsing whitespace, exactly as
+SQuAD computes it. Every refusal on these routes is a 422 with a message naming the
 problem: for text, an empty `metrics` list, an empty reference group or an
 unknown metric; for answers, no items or an item with no accepted answers.
 
@@ -105,7 +106,7 @@ Answer (200):
   "exact_match": 50.0,
   "token_f1": 83.33333333333333,
   "count": 2,
-  "normalisation": "lowercases the text, removes punctuation, removes the articles a, an and the, and collapses whitespace into single spaces"
+  "normalisation": "lowercases the text, deletes punctuation without leaving a space, removes the articles a, an and the, and collapses whitespace into single spaces"
 }
 ```
 
