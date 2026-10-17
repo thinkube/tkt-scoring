@@ -7,8 +7,10 @@ can be compared.
 
 The service answers `GET /health` with `{"status": "ok"}`, scores
 written output through `POST /api/v1/text`, and scores predicted answers
-against accepted answers through `POST /api/v1/answers`. The metrics below
-that are not built yet are built on it next.
+against accepted answers through `POST /api/v1/answers`, and scores a
+classifier through `POST /api/v1/classification`, and scores retrieval
+through `POST /api/v1/retrieval`. The metrics below that are not built yet
+are built on it next.
 
 `POST /api/v1/text` takes `hypotheses` (the outputs to score), `references`
 (one list of accepted references per hypothesis, of length one when there
@@ -26,6 +28,26 @@ applied before comparing: lowercasing, removing punctuation, removing the
 articles a, an and the, and collapsing whitespace, exactly as SQuAD
 computes it.
 
+`POST /api/v1/classification` takes `predicted` (the labels a classifier
+gave) and `true_labels` (the labels it should have given, in the same
+order); both must be non-empty lists of the same length. It answers
+`accuracy`, the `per_label` precision, recall and F1, the `macro` and
+`micro` averages of those three, the `confusion_matrix` (rows are the true
+label, columns the predicted label) with the `labels` order it is written
+in, and a `statement` of the definitions used. It refuses lists of
+different lengths, naming both counts, and never invents a number.
+
+`POST /api/v1/retrieval` takes `queries`, each with `retrieved` (the ranked
+ids a system returned) and `relevant` (a list of `{"id": "...", "grade": 2}`,
+`grade` optional and 1 when left out), and `k`, the cut-offs wanted. It
+answers `recall_at_k`, `precision_at_k` and `ndcg_at_k` (each keyed by the
+cut-off) and `mrr`, all on a 0 to 1 scale and averaged over the queries,
+with the `count` of queries scored and the `definitions` used. It refuses no
+queries, no cut-offs, a query with no relevant ids, a cut-off that is not a
+positive whole number, and a ranked list that repeats an id, naming the
+offender, and never invents a number. See
+[the how-to](docs/i-can-score-retrieval-against-its-relevant-results.md).
+
 ## Version 1
 
 - **Translation and generation text:** BLEU, chrF, chrF++ and TER through
@@ -35,8 +57,9 @@ computes it.
 - **Answers and extraction:** exact match and token F1, through
   `POST /api/v1/answers`.
 - **Classification:** accuracy; precision, recall and F1, macro and micro;
-  the confusion matrix.
-- **Retrieval:** recall@k, precision@k, MRR and nDCG@k.
+  the confusion matrix, through `POST /api/v1/classification`.
+- **Retrieval:** recall@k, precision@k, MRR and nDCG@k, through
+  `POST /api/v1/retrieval`.
 - **Comparing two systems:** paired bootstrap for any of the metrics above,
   with 95% intervals and significance. A difference inside the interval is
   not a gain.

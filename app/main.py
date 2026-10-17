@@ -7,7 +7,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.answers import NORMALISATION, score_answers
+from app.classification import score_classification
 from app.rouge_metrics import ROUGE_METRICS, score_rouge
+from app.retrieval import DEFINITIONS, score_retrieval
 from app.sacrebleu_metrics import SACREBLEU_METRICS, score_sacrebleu
 
 TEXT_METRICS = SACREBLEU_METRICS | ROUGE_METRICS
@@ -117,3 +119,111 @@ def score_answers_route(payload: AnswersRequest) -> AnswersResponse:
         count=scores["count"],
         normalisation=NORMALISATION,
     )
+
+
+class ClassificationRequest(BaseModel):
+    # Absent fields default to empty so the route can refuse them in one
+    # message that says what to send.
+    predicted: list[str] = []
+    true_labels: list[str] = []
+
+
+class LabelScore(BaseModel):
+    precision: float
+    recall: float
+    f1: float
+
+
+class ClassificationResponse(BaseModel):
+    accuracy: float
+    per_label: dict[str, LabelScore]
+    macro: LabelScore
+    micro: LabelScore
+    labels: list[str]
+    confusion_matrix: list[list[int]]
+    statement: str
+
+
+@app.post("/api/v1/classification")
+def score_classification_route(
+    payload: ClassificationRequest,
+) -> ClassificationResponse:
+    """Scores predicted labels against true labels.
+
+    Answers accuracy, per-label precision, recall and F1, their macro and
+    micro averages, and the confusion matrix with the label order it is
+    written in. Nothing of the request is kept.
+    """
+    if not payload.predicted or not payload.true_labels:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "predicted and true_labels are both required (true labels "
+                "are sent as 'true_labels'); each must be a non-empty list "
+                "of the same length"
+            ),
+        )
+
+    try:
+        scores = score_classification(payload.predicted, payload.true_labels)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+    return ClassificationResponse(**scores)
+
+
+class RelevantId(BaseModel):
+    id: str
+    grade: float = 1.0
+
+
+class RetrievalQuery(BaseModel):
+    retrieved: list[str]
+    relevant: list[RelevantId]
+
+
+class RetrievalRequest(BaseModel):
+    queries: list[RetrievalQuery]
+    k: list[int]
+
+
+class RetrievalResponse(BaseModel):
+    recall_at_k: dict[int, float]
+    precision_at_k: dict[int, float]
+    ndcg_at_k: dict[int, float]
+    mrr: float
+    count: int
+    definitions: str
+
+
+@app.post("/api/v1/retrieval")
+def score_retrieval_route(payload: RetrievalRequest) -> RetrievalResponse:
+    """Scores ranked ids against relevant ids, per query, averaged.
+
+    Answers recall@k, precision@k and nDCG@k for each cut-off asked, MRR,
+    the number of queries scored and the definitions used. Nothing of the
+    request is kept.
+    """
+    if not payload.queries:
+        raise HTTPException(
+            status_code=400,
+            detail="queries must not be empty: send at least one query",
+        )
+    if not payload.k:
+        raise HTTPException(
+            status_code=400,
+            detail="k must not be empty: send at least one cut-off",
+        )
+
+    try:
+        scores = score_retrieval(
+            [
+                (query.retrieved, {r.id: r.grade for r in query.relevant})
+                for query in payload.queries
+            ],
+            payload.k,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+    return RetrievalResponse(**scores, definitions=DEFINITIONS)
